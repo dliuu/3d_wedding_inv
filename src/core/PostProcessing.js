@@ -1,9 +1,9 @@
 import * as THREE from 'three'
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
+import { GammaCorrectionShader } from 'three/examples/jsm/shaders/GammaCorrectionShader.js'
 import { Experience } from '../Experience.js'
 
 /**
@@ -13,7 +13,7 @@ import { Experience } from '../Experience.js'
  * 1. RenderPass — base scene render
  * 2. UnrealBloomPass — cinematic glow on emissive surfaces
  * 3. Custom vignette + film grain shader
- * 4. OutputPass — final color space conversion
+ * 4. Gamma correction — final color space conversion
  * 
  * This is what separates "code demo" from "cinematic experience".
  */
@@ -100,9 +100,9 @@ export class PostProcessing {
     this.vignettePass = new ShaderPass(VignetteGrainShader)
     this.composer.addPass(this.vignettePass)
 
-    // 4. Output (color space)
-    this.outputPass = new OutputPass()
-    this.composer.addPass(this.outputPass)
+    // 4. Gamma correction (more compatible than OutputPass across versions)
+    this.gammaPass = new ShaderPass(GammaCorrectionShader)
+    this.composer.addPass(this.gammaPass)
   }
 
   render() {

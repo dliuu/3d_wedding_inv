@@ -76,9 +76,8 @@ export class Environment {
     // These are dim — they establish the "library" feel
     const fixtures = [[-2, -2], [2, -2], [0, 1], [-2, 3], [2, 3]]
     for (const [x, z] of fixtures) {
-      const light = new THREE.RectAreaLight(0xf0f0ff, 2, 1.5, 0.15)
+      const light = new THREE.PointLight(0xf0f0ff, 0.8, 6, 2)
       light.position.set(x, 4.95, z)
-      light.lookAt(x, 0, z)
       this.scene.add(light)
     }
   }
