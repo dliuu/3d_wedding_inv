@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Owen & Yilin — A Story</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <canvas id="webgl"></canvas>
+
+  <!-- Loading screen -->
+  <div id="loader">
+    <div class="loader-inner">
+      <div class="loader-bar"><div class="loader-fill"></div></div>
+      <p class="loader-text">Loading scene...</p>
+    </div>
+  </div>
+
+  <!-- UI overlay (all text rendered in HTML, positioned over WebGL) -->
+  <div id="ui-overlay">
+    <!-- Scene 1 text -->
+    <div class="scene-text" id="scene-1-text">
+      <h2 class="scene-label">Scene 1</h2>
+      <h1 class="scene-title">How They Met</h1>
+      <div class="scene-details">
+        <div class="thought thought-owen">
+          <p>"She asked me where Brazil was."</p>
+          <span class="thought-attr">— Owen's first impression: a curious one</span>
+        </div>
+        <div class="thought thought-yilin">
+          <p>"Loud Chinese guy."</p>
+          <span class="thought-attr">— Yilin's first impression</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll progress -->
+    <div id="scroll-progress">
+      <div class="progress-fill"></div>
+    </div>
+
+    <!-- Navigation dots -->
+    <nav id="scene-nav">
+      <button class="nav-dot active" data-scene="0"><span>How they met</span></button>
+      <button class="nav-dot" data-scene="1"><span>Scene 2</span></button>
+      <button class="nav-dot" data-scene="2"><span>Scene 3</span></button>
+    </nav>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

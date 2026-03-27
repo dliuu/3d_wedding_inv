@@ -1,0 +1,10 @@
+// Shader files (.vert, .frag, .glsl) placed here are auto-imported
+// by vite-plugin-glsl. Example usage:
+//
+//   import vertexShader from './shaders/particles.vert'
+//   import fragmentShader from './shaders/particles.frag'
+//
+//   new THREE.ShaderMaterial({ vertexShader, fragmentShader })
+//
+// Currently the particle shader is inline in Particles.js.
+// Extract it here when it gets complex enough to warrant its own file.
