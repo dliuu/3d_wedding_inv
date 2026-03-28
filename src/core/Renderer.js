@@ -40,7 +40,7 @@ export class Renderer {
     this.instance.shadowMap.type = THREE.PCFSoftShadowMap
 
     // Background
-    this.instance.setClearColor(0x0a0a0c, 1)
+    this.instance.setClearColor(0xfaf7f2, 1)
   }
 
   onResize() {

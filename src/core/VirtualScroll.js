@@ -1,105 +1,170 @@
-import { Experience } from '../Experience.js'
+import gsap from 'gsap'
+import { EventEmitter } from './EventEmitter.js'
 
 /**
- * VirtualScroll
- * 
- * Captures scroll/wheel/touch input without actual page scrolling.
- * Outputs a normalized 0–1 progress value with damping.
- * 
- * Inspired by chartogne-taillet.com's scroll-jacking approach.
- * See: https://frontendmasters.com/blog/virtual-scroll-driven-3d-scenes/
+ * VirtualScroll — §2 / §14.8 `on('scroll')` for nav chrome.
  */
-export class VirtualScroll {
+export class VirtualScroll extends EventEmitter {
   constructor() {
-    this.experience = Experience.instance
+    super()
 
-    // State
-    this.scrollTarget = 0       // where the user wants to be
-    this.scrollCurrent = 0      // where we currently are (damped)
-    this.scrollLimit = 1000     // total virtual scroll distance
-    this.damping = 0.06         // interpolation speed
-    this.sensitivity = 1.2      // scroll speed multiplier
+    this.progress = 0
+    this.targetProgress = 0
+    this.velocity = 0
+    this.direction = 0
 
-    // Reduced motion
+    this._prevProgress = 0
+    this._goToTween = null
+
     this.prefersReducedMotion = window.matchMedia(
       '(prefers-reduced-motion: reduce)'
     ).matches
-    if (this.prefersReducedMotion) this.damping = 1
 
-    // Normalized progress (0–1)
-    this.progress = 0
+    this._wheelFactor = 0.0024
 
-    // Touch tracking
-    this._touchStart = 0
-    this._touchCurrent = 0
+    this._touchStartY = 0
+    this._touchLastY = 0
 
-    // Bind events
     this._onWheel = this._onWheel.bind(this)
     this._onTouchStart = this._onTouchStart.bind(this)
     this._onTouchMove = this._onTouchMove.bind(this)
     this._onKeyDown = this._onKeyDown.bind(this)
 
-    window.addEventListener('wheel', this._onWheel, { passive: false })
+    window.addEventListener('wheel', this._onWheel, {
+      passive: false,
+      capture: true,
+    })
     window.addEventListener('touchstart', this._onTouchStart, { passive: true })
     window.addEventListener('touchmove', this._onTouchMove, { passive: false })
-    window.addEventListener('keydown', this._onKeyDown)
+    window.addEventListener('keydown', this._onKeyDown, { capture: true })
+  }
+
+  _emitScroll() {
+    this.emit('scroll')
+  }
+
+  _clamp01(v) {
+    return Math.max(0, Math.min(1, v))
   }
 
   _onWheel(e) {
     e.preventDefault()
-    this.scrollTarget += e.deltaY * this.sensitivity
-    this.scrollTarget = Math.max(0, Math.min(this.scrollTarget, this.scrollLimit))
+    const dy = e.deltaY
+    const dx = e.deltaX
+    const scrollDelta =
+      Math.abs(dy) >= Math.abs(dx) ? dy : dx * (e.shiftKey ? -1 : 1)
+    const delta = scrollDelta * this._wheelFactor
+    this.targetProgress = this._clamp01(this.targetProgress + delta)
+    if (this._goToTween) {
+      this._goToTween.kill()
+      this._goToTween = null
+    }
+    this._emitScroll()
   }
 
   _onTouchStart(e) {
-    this._touchStart = e.touches[0].clientY
-    this._touchCurrent = this._touchStart
+    this._touchStartY = e.touches[0].clientY
+    this._touchLastY = this._touchStartY
   }
 
   _onTouchMove(e) {
     e.preventDefault()
     const y = e.touches[0].clientY
-    const delta = (this._touchCurrent - y) * 2.5
-    this._touchCurrent = y
-    this.scrollTarget += delta * this.sensitivity
-    this.scrollTarget = Math.max(0, Math.min(this.scrollTarget, this.scrollLimit))
+    const deltaY = this._touchLastY - y
+    this._touchLastY = y
+    const h = window.innerHeight || 1
+    this.targetProgress = this._clamp01(
+      this.targetProgress + (deltaY / h) * 0.22
+    )
+    if (this._goToTween) {
+      this._goToTween.kill()
+      this._goToTween = null
+    }
+    this._emitScroll()
   }
 
   _onKeyDown(e) {
-    if (e.key === 'ArrowDown' || e.key === ' ') {
-      this.scrollTarget += 80
-    } else if (e.key === 'ArrowUp') {
-      this.scrollTarget -= 80
+    let delta = 0
+    if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
+      delta = 0.035
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      delta = -0.035
     }
-    this.scrollTarget = Math.max(0, Math.min(this.scrollTarget, this.scrollLimit))
+    if (delta === 0) return
+    e.preventDefault()
+    this.targetProgress = this._clamp01(this.targetProgress + delta)
+    if (this._goToTween) {
+      this._goToTween.kill()
+      this._goToTween = null
+    }
+    this._emitScroll()
   }
 
-  /**
-   * Jump to a specific progress value (0–1).
-   * Used by nav dots and SceneManager.
-   */
   setProgress(p) {
-    this.scrollTarget = p * this.scrollLimit
+    this.targetProgress = this._clamp01(p)
+    if (this.prefersReducedMotion) {
+      this.progress = this.targetProgress
+    }
+    if (this._goToTween) {
+      this._goToTween.kill()
+      this._goToTween = null
+    }
+    this._emitScroll()
   }
 
-  update() {
-    // Damp toward target
-    this.scrollCurrent += (this.scrollTarget - this.scrollCurrent) * this.damping
+  goTo(targetProgress, duration = 1.5) {
+    const t = this._clamp01(targetProgress)
+    if (this._goToTween) this._goToTween.kill()
 
-    // Normalize
-    this.progress = this.scrollCurrent / this.scrollLimit
-
-    // Update UI progress bar
-    const fill = document.querySelector('.progress-fill')
-    if (fill) {
-      fill.style.height = `${this.progress * 100}%`
+    if (this.prefersReducedMotion || duration <= 0) {
+      this.targetProgress = t
+      this._emitScroll()
+      return
     }
+
+    const state = { v: this.targetProgress }
+    this._goToTween = gsap.to(state, {
+      v: t,
+      duration,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        this.targetProgress = state.v
+        this._emitScroll()
+      },
+      onComplete: () => {
+        this.targetProgress = t
+        this._goToTween = null
+        this._emitScroll()
+      },
+    })
+  }
+
+  update(delta) {
+    const dt = Math.max(delta, 1 / 240)
+
+    if (this.prefersReducedMotion) {
+      this.progress = this.targetProgress
+    } else {
+      const DAMP = 0.06
+      this.progress += (this.targetProgress - this.progress) * DAMP
+      if (Math.abs(this.targetProgress - this.progress) < 0.0001) {
+        this.progress = this.targetProgress
+      }
+    }
+
+    this.velocity = Math.abs(this.progress - this._prevProgress) / dt
+    this._prevProgress = this.progress
+
+    const diff = this.targetProgress - this.progress
+    this.direction =
+      Math.abs(diff) < 1e-6 ? 0 : diff > 0 ? 1 : -1
   }
 
   destroy() {
-    window.removeEventListener('wheel', this._onWheel)
+    if (this._goToTween) this._goToTween.kill()
+    window.removeEventListener('wheel', this._onWheel, { capture: true })
     window.removeEventListener('touchstart', this._onTouchStart)
     window.removeEventListener('touchmove', this._onTouchMove)
-    window.removeEventListener('keydown', this._onKeyDown)
+    window.removeEventListener('keydown', this._onKeyDown, { capture: true })
   }
 }

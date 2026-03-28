@@ -47,33 +47,33 @@ export class Library {
     // All library materials are monochrome with high roughness
     this.mat = {
       floor: new THREE.MeshStandardMaterial({
-        color: 0x3a3a3a,
+        color: 0x5c534a,
         roughness: 0.95,
         metalness: 0,
       }),
       wall: new THREE.MeshStandardMaterial({
-        color: 0x4a4a4a,
+        color: 0x6a6058,
         roughness: 0.95,
         metalness: 0,
         side: THREE.DoubleSide,
       }),
       shelf: new THREE.MeshStandardMaterial({
-        color: 0x555555,
+        color: 0x635a52,
         roughness: 0.85,
         metalness: 0,
       }),
       table: new THREE.MeshStandardMaterial({
-        color: 0x6a6a6a,
+        color: 0x72685e,
         roughness: 0.8,
         metalness: 0,
       }),
       tableLeg: new THREE.MeshStandardMaterial({
-        color: 0x444444,
+        color: 0x504840,
         roughness: 0.8,
         metalness: 0.1,
       }),
       chair: new THREE.MeshStandardMaterial({
-        color: 0x585858,
+        color: 0x5e564e,
         roughness: 0.85,
         metalness: 0,
       }),

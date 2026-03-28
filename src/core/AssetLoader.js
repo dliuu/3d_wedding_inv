@@ -66,13 +66,18 @@ export class AssetLoader extends EventEmitter {
     this.toLoad = this.manifest.length
 
     if (this.toLoad === 0) {
-      // No external assets — boot immediately with procedural fallback
+      this.loaded = 0
       setTimeout(() => {
-        this.emit('progress', 1)
+        this.loaded = 1
+        this.toLoad = 1
+        this.emit('progress', 1, 1)
         this.emit('ready')
+        this.emit('complete')
       }, 500)
       return
     }
+
+    this.emit('progress', 0, this.toLoad)
 
     for (const asset of this.manifest) {
       switch (asset.type) {
@@ -109,11 +114,11 @@ export class AssetLoader extends EventEmitter {
     this.items[name] = item
     this.loaded++
 
-    const progress = this.loaded / this.toLoad
-    this.emit('progress', progress)
+    this.emit('progress', this.loaded, this.toLoad)
 
     if (this.loaded === this.toLoad) {
       this.emit('ready')
+      this.emit('complete')
     }
   }
 }

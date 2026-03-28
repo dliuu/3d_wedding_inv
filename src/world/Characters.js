@@ -83,10 +83,10 @@ export class Characters {
         color: 0xf0cda0, roughness: 0.55, metalness: 0,
       }),
       redHoodie: new THREE.MeshStandardMaterial({
-        color: 0xc41e3a, roughness: 0.65, metalness: 0,
+        color: 0xed1b2f, roughness: 0.65, metalness: 0,
       }),
       greyHoodie: new THREE.MeshStandardMaterial({
-        color: 0x707070, roughness: 0.65, metalness: 0,
+        color: 0x8fa4b8, roughness: 0.65, metalness: 0,
       }),
       hair: new THREE.MeshStandardMaterial({
         color: 0x1a1a1a, roughness: 0.75, metalness: 0.05,
@@ -487,6 +487,43 @@ export class Characters {
     screen.rotation.x = 0.15
     screen.rotation.y = -0.3
     this.scene.add(screen)
+
+    this.tableProps = [nb, cup, coffee, base, screen]
+
+    this._layoutOwenRotY = 0.15
+    this._layoutYilinRotY = Math.PI + 0.3
+  }
+
+  setCharactersVisible(visible) {
+    if (this.owen) this.owen.visible = visible
+    if (this.yilin) this.yilin.visible = visible
+  }
+
+  setTablePropsVisible(visible) {
+    if (this.tableProps) {
+      for (const m of this.tableProps) m.visible = visible
+    }
+  }
+
+  setLibrarySceneVisible(visible) {
+    this.setCharactersVisible(visible)
+    this.setTablePropsVisible(visible)
+  }
+
+  /** Library desk vs first-date café seating (§14.1). */
+  applySceneLayout(sceneId) {
+    if (!this.owen || !this.yilin) return
+    if (sceneId === 'first-date') {
+      this.owen.position.set(-0.35, 0, 0.4)
+      this._layoutOwenRotY = 0.5
+      this.yilin.position.set(0.45, 0, -0.25)
+      this._layoutYilinRotY = Math.PI - 0.4
+    } else {
+      this.owen.position.set(-0.8, 0, 1.2)
+      this._layoutOwenRotY = 0.15
+      this.yilin.position.set(0.9, 0, 0.6)
+      this._layoutYilinRotY = Math.PI + 0.3
+    }
   }
 
   update(time) {
@@ -511,7 +548,8 @@ export class Characters {
       }
       // Body sway
       if (this.owen) {
-        this.owen.rotation.y = 0.15 + Math.sin(t * 2) * 0.025
+        this.owen.rotation.y =
+          this._layoutOwenRotY + Math.sin(t * 2) * 0.025
       }
     }
 
@@ -528,7 +566,8 @@ export class Characters {
         parts.armR.rotation.z = -Math.PI * 0.25 + Math.sin(t * 2.2 + 0.5) * 0.05
       }
       if (this.yilin) {
-        this.yilin.rotation.y = Math.PI + 0.3 + Math.sin(t * 1.8 + 1) * 0.015
+        this.yilin.rotation.y =
+          this._layoutYilinRotY + Math.sin(t * 1.8 + 1) * 0.015
       }
     }
 

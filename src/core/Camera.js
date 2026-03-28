@@ -3,48 +3,64 @@ import { Experience } from '../Experience.js'
 import gsap from 'gsap'
 
 /**
- * Camera
- * 
- * A cinematic camera rig with:
- * - Damped interpolation between target positions
- * - Scene-specific camera poses (position + lookAt + FOV)
- * - Gentle idle drift for life-like feel
- * - Smooth transitions via GSAP
+ * Cinematic camera: five scene poses, GSAP transitions, subtle handheld drift.
  */
 export class Camera {
   constructor() {
     this.experience = Experience.instance
     this.sizes = this.experience.sizes
 
-    // Camera instance
     this.instance = new THREE.PerspectiveCamera(
-      35, // tight cinematic FOV
+      60,
       this.sizes.width / this.sizes.height,
       0.1,
       100
     )
 
-    // Current state (interpolated)
-    this.position = new THREE.Vector3(0, 4.5, 8)
-    this.lookAtTarget = new THREE.Vector3(0, 1.2, 0)
+    this.poses = [
+      {
+        position: new THREE.Vector3(0, 2, 20),
+        lookAt: new THREE.Vector3(0, 0, 0),
+        fov: 60,
+      },
+      {
+        position: new THREE.Vector3(3, 4, 5),
+        lookAt: new THREE.Vector3(0, 1, 0),
+        fov: 45,
+      },
+      {
+        position: new THREE.Vector3(2, 1.5, 3),
+        lookAt: new THREE.Vector3(0, 1.2, 0),
+        fov: 40,
+      },
+      {
+        position: new THREE.Vector3(0, 3, 8),
+        lookAt: new THREE.Vector3(0, 1, 0),
+        fov: 55,
+      },
+      {
+        position: new THREE.Vector3(0, 0, 6),
+        lookAt: new THREE.Vector3(0, 0, 0),
+        fov: 42,
+      },
+    ]
 
-    // Target state (set by SceneManager)
+    const p0 = this.poses[0]
+    this.position = p0.position.clone()
+    this.lookAtTarget = p0.lookAt.clone()
     this.targetPosition = this.position.clone()
     this.targetLookAt = this.lookAtTarget.clone()
-    this.targetFov = 35
+    this.targetFov = p0.fov
 
-    // Damping
-    this.damping = 0.03 // lower = smoother/heavier
+    this.damping = 0.03
     this.fovDamping = 0.05
 
-    // Idle drift
     this.idleDrift = {
       enabled: true,
-      amplitude: 0.08,
-      frequency: 0.15,
+      amplitude: 0.015,
+      frequency: 0.5,
     }
 
-    // Reduced motion
     this.prefersReducedMotion = window.matchMedia(
       '(prefers-reduced-motion: reduce)'
     ).matches
@@ -54,49 +70,27 @@ export class Camera {
       this.idleDrift.enabled = false
     }
 
-    // Set initial position
     this.instance.position.copy(this.position)
+    this.instance.fov = this.targetFov
+    this.instance.updateProjectionMatrix()
     this.instance.lookAt(this.lookAtTarget)
     this.experience.scene.add(this.instance)
-
-    // ── Scene camera poses ──
-    // Each scene defines where the camera should be.
-    // The SceneManager calls setCameraPose(index) on transition.
-    this.poses = [
-      // Scene 0 — How they met (library, slightly above)
-      {
-        position: new THREE.Vector3(1, 4.0, 7),
-        lookAt: new THREE.Vector3(0, 1.3, 0),
-        fov: 38,
-      },
-      // Scene 1 — (placeholder)
-      {
-        position: new THREE.Vector3(-3, 2.5, 5),
-        lookAt: new THREE.Vector3(0, 1.5, 0),
-        fov: 42,
-      },
-      // Scene 2 — (placeholder)
-      {
-        position: new THREE.Vector3(0, 1.8, 3),
-        lookAt: new THREE.Vector3(0, 1.6, -1),
-        fov: 50,
-      },
-    ]
   }
 
-  /**
-   * Transition camera to a named scene pose.
-   * @param {number} index — index into this.poses
-   * @param {number} duration — seconds
-   */
-  setCameraPose(index, duration = 2.5) {
-    const pose = this.poses[index]
+  transitionTo(poseIndex, duration = 1.5) {
+    const pose = this.poses[poseIndex]
     if (!pose) return
+
+    gsap.killTweensOf(this.targetPosition)
+    gsap.killTweensOf(this.targetLookAt)
+    gsap.killTweensOf(this)
 
     if (this.prefersReducedMotion || duration === 0) {
       this.targetPosition.copy(pose.position)
       this.targetLookAt.copy(pose.lookAt)
       this.targetFov = pose.fov
+      this.instance.fov = pose.fov
+      this.instance.updateProjectionMatrix()
       return
     }
 
@@ -105,7 +99,7 @@ export class Camera {
       y: pose.position.y,
       z: pose.position.z,
       duration,
-      ease: 'power3.inOut',
+      ease: 'power2.inOut',
     })
 
     gsap.to(this.targetLookAt, {
@@ -113,45 +107,55 @@ export class Camera {
       y: pose.lookAt.y,
       z: pose.lookAt.z,
       duration,
-      ease: 'power3.inOut',
+      ease: 'power2.inOut',
     })
 
-    gsap.to(this, {
+    const tl = gsap.timeline()
+    tl.to(this, {
+      targetFov: pose.fov + 10,
+      duration: duration * 0.4,
+      ease: 'power2.in',
+    })
+    tl.to(this, {
       targetFov: pose.fov,
-      duration,
-      ease: 'power2.inOut',
+      duration: duration * 0.6,
+      ease: 'power2.out',
     })
   }
 
-  update() {
-    const elapsed = this.experience.time.elapsed
+  /** @deprecated Use transitionTo — kept for any external callers */
+  setCameraPose(index, duration = 2.5) {
+    this.transitionTo(index, duration)
+  }
 
-    // Idle drift
-    let driftX = 0, driftY = 0, driftZ = 0
-    if (this.idleDrift.enabled) {
-      const a = this.idleDrift.amplitude
-      const f = this.idleDrift.frequency
-      driftX = Math.sin(elapsed * f * 1.1) * a
-      driftY = Math.cos(elapsed * f * 0.7) * a * 0.5
-      driftZ = Math.sin(elapsed * f * 0.9 + 1.5) * a * 0.3
+  update() {
+    const time = performance.now() * 0.001
+    const driftA = this.idleDrift.enabled ? this.idleDrift.amplitude : 0
+
+    let driftX = 0
+    let driftY = 0
+    let driftZ = 0
+    if (driftA > 0) {
+      driftX = Math.sin(time * 0.5) * driftA
+      driftY = Math.cos(time * 0.3) * driftA * 0.5
+      driftZ = Math.sin(time * 0.7) * driftA * 0.3
     }
 
-    // Damp toward target + drift
     const target = this.targetPosition
-    this.position.x += ((target.x + driftX) - this.position.x) * this.damping
-    this.position.y += ((target.y + driftY) - this.position.y) * this.damping
-    this.position.z += ((target.z + driftZ) - this.position.z) * this.damping
+    this.position.x += (target.x + driftX - this.position.x) * this.damping
+    this.position.y += (target.y + driftY - this.position.y) * this.damping
+    this.position.z += (target.z + driftZ - this.position.z) * this.damping
 
-    // Damp lookAt
-    this.lookAtTarget.x += (this.targetLookAt.x - this.lookAtTarget.x) * this.damping
-    this.lookAtTarget.y += (this.targetLookAt.y - this.lookAtTarget.y) * this.damping
-    this.lookAtTarget.z += (this.targetLookAt.z - this.lookAtTarget.z) * this.damping
+    this.lookAtTarget.x +=
+      (this.targetLookAt.x - this.lookAtTarget.x) * this.damping
+    this.lookAtTarget.y +=
+      (this.targetLookAt.y - this.lookAtTarget.y) * this.damping
+    this.lookAtTarget.z +=
+      (this.targetLookAt.z - this.lookAtTarget.z) * this.damping
 
-    // Damp FOV
     this.instance.fov += (this.targetFov - this.instance.fov) * this.fovDamping
     this.instance.updateProjectionMatrix()
 
-    // Apply
     this.instance.position.copy(this.position)
     this.instance.lookAt(this.lookAtTarget)
   }

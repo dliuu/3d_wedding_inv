@@ -1,45 +1,99 @@
 import { Experience } from '../Experience.js'
+import gsap from 'gsap'
+import { SCENES } from './SceneManager.js'
 
 /**
- * UIController
- * 
- * Manages all HTML overlay elements:
- * - Loading screen
- * - Scene text overlays
- * - Navigation dots
- * - Scroll progress indicator
+ * HTML overlay: loader, scene copy, nav dots, scroll-chrome fade.
  */
 export class UIController {
   constructor() {
     this.experience = Experience.instance
 
-    // DOM refs
     this.loader = document.getElementById('loader')
     this.loaderFill = document.querySelector('.loader-fill')
     this.loaderText = document.querySelector('.loader-text')
 
-    // Nav dot clicks
+    this.nav = document.getElementById('scene-nav')
+
+    document.querySelectorAll('.scene-text').forEach((el) => {
+      gsap.set(el, { display: 'none', opacity: 0 })
+    })
+
     document.querySelectorAll('.nav-dot').forEach((dot) => {
       dot.addEventListener('click', () => {
-        const sceneIndex = parseInt(dot.dataset.scene)
-        const targetProgress = this.experience.sceneManager.scenes[sceneIndex].progressStart
-        this.experience.virtualScroll.setProgress(targetProgress + 0.01)
+        const sceneIndex = parseInt(dot.dataset.scene, 10)
+        const scene = SCENES[sceneIndex]
+        if (!scene) return
+        const targetProgress = scene.progressStart + 0.01
+        this.experience.virtualScroll.goTo(targetProgress, 1.5)
       })
     })
   }
 
-  updateLoader(progress) {
+  showText(elementId) {
+    const el = document.getElementById(elementId)
+    if (!el) return
+
+    const children = el.querySelectorAll(
+      '.scene-label, .scene-title, .title-names, .title-date, .scene-body, .invitation-card > *'
+    )
+
+    gsap.set(el, { display: 'flex', opacity: 0 })
+    gsap.to(el, { opacity: 1, duration: 0.5 })
+    gsap.fromTo(
+      children,
+      { opacity: 0, y: 30 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        stagger: 0.15,
+        ease: 'power2.out',
+        delay: 0.3,
+      }
+    )
+  }
+
+  hideText(elementId) {
+    const el = document.getElementById(elementId)
+    if (!el) return
+    gsap.to(el, {
+      opacity: 0,
+      duration: 0.4,
+      onComplete: () => gsap.set(el, { display: 'none' }),
+    })
+  }
+
+  /** §14.6 — loaded / total asset count */
+  updateLoader(loaded, total) {
+    const safeTotal = Math.max(total, 1)
+    const pct = Math.min(100, (loaded / safeTotal) * 100)
     if (this.loaderFill) {
-      this.loaderFill.style.width = `${progress * 100}%`
+      this.loaderFill.style.width = `${pct}%`
     }
     if (this.loaderText) {
-      this.loaderText.textContent = `Loading... ${Math.round(progress * 100)}%`
+      this.loaderText.textContent = `Loading scene... ${Math.round(pct)}%`
     }
   }
 
+  /** §14.6 — GSAP dismiss loader (Scene 0 already activated by SceneManager.start). */
+  completeLoader() {
+    gsap.to('#loader', {
+      opacity: 0,
+      duration: 0.8,
+      delay: 0.3,
+      ease: 'power2.out',
+      onComplete: () => {
+        const el = document.getElementById('loader')
+        if (el) {
+          el.style.display = 'none'
+          el.classList.add('hidden')
+        }
+      },
+    })
+  }
+
   hideLoader() {
-    if (this.loader) {
-      this.loader.classList.add('hidden')
-    }
+    this.completeLoader()
   }
 }

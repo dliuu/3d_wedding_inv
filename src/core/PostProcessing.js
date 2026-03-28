@@ -1,115 +1,144 @@
 import * as THREE from 'three'
+import gsap from 'gsap'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
-import { GammaCorrectionShader } from 'three/examples/jsm/shaders/GammaCorrectionShader.js'
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { Experience } from '../Experience.js'
+import passThroughVert from '../shaders/passThrough.vert'
+import vignetteGrainFrag from '../shaders/vignette-grain.frag'
+import chromaticAberrationFrag from '../shaders/chromatic-aberration.frag'
 
 /**
- * PostProcessing
- * 
- * Multi-pass pipeline:
- * 1. RenderPass — base scene render
- * 2. UnrealBloomPass — cinematic glow on emissive surfaces
- * 3. Custom vignette + film grain shader
- * 4. Gamma correction — final color space conversion
- * 
- * This is what separates "code demo" from "cinematic experience".
+ * Pipeline (§6): Render → Bloom → Vignette+Grain → Chromatic → OutputPass (color space)
  */
-
-// ── Custom vignette + grain shader ──
-const VignetteGrainShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    uTime: { value: 0 },
-    uVignetteIntensity: { value: 0.35 },
-    uVignetteRoundness: { value: 0.5 },
-    uGrainIntensity: { value: 0.06 },
-    uGrainSize: { value: 1.5 },
-  },
-  vertexShader: /* glsl */ `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: /* glsl */ `
-    uniform sampler2D tDiffuse;
-    uniform float uTime;
-    uniform float uVignetteIntensity;
-    uniform float uVignetteRoundness;
-    uniform float uGrainIntensity;
-    uniform float uGrainSize;
-    varying vec2 vUv;
-
-    // Film grain noise
-    float random(vec2 co) {
-      return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
-    }
-
-    void main() {
-      vec4 color = texture2D(tDiffuse, vUv);
-
-      // Vignette
-      vec2 uv = vUv * 2.0 - 1.0;
-      uv.x *= uVignetteRoundness;
-      float vignette = 1.0 - dot(uv, uv) * uVignetteIntensity;
-      vignette = clamp(vignette, 0.0, 1.0);
-      vignette = smoothstep(0.0, 1.0, vignette);
-      color.rgb *= vignette;
-
-      // Film grain
-      vec2 grainUv = vUv * uGrainSize;
-      float grain = random(grainUv + fract(uTime * 0.5)) * 2.0 - 1.0;
-      color.rgb += grain * uGrainIntensity;
-
-      gl_FragColor = color;
-    }
-  `,
-}
-
 export class PostProcessing {
   constructor() {
     this.experience = Experience.instance
+    const cap = this.experience.capabilities
     this.renderer = this.experience.renderer.instance
     this.scene = this.experience.scene
     this.camera = this.experience.camera.instance
     this.sizes = this.experience.sizes
 
-    // Composer
+    const linen = new THREE.Vector3(0.94, 0.92, 0.89)
+
+    const vignetteGrainShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        uTime: { value: 0 },
+        uVignette: { value: 0.2 },
+        uGrain: { value: 0.02 },
+        uVignetteColor: { value: linen.clone() },
+        uSaturation: { value: 1.0 },
+      },
+      vertexShader: passThroughVert,
+      fragmentShader: vignetteGrainFrag,
+    }
+
+    const chromaticShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        uAmount: { value: 0 },
+      },
+      vertexShader: passThroughVert,
+      fragmentShader: chromaticAberrationFrag,
+    }
+
     this.composer = new EffectComposer(this.renderer)
     this.composer.setSize(this.sizes.width, this.sizes.height)
     this.composer.setPixelRatio(this.sizes.pixelRatio)
 
-    // 1. Render pass
     this.renderPass = new RenderPass(this.scene, this.camera)
     this.composer.addPass(this.renderPass)
 
-    // 2. Bloom
     this.bloomPass = new UnrealBloomPass(
       new THREE.Vector2(this.sizes.width, this.sizes.height),
-      0.3,   // strength — subtle
-      0.8,   // radius
-      0.85   // threshold — only bright things bloom
+      0.4,
+      0.4,
+      0.85
     )
+    this.bloomPass.enabled = !cap.disableBloom
     this.composer.addPass(this.bloomPass)
 
-    // 3. Vignette + grain
-    this.vignettePass = new ShaderPass(VignetteGrainShader)
+    this.vignettePass = new ShaderPass(vignetteGrainShader)
+    this.vignetteGrainUniforms = this.vignettePass.uniforms
     this.composer.addPass(this.vignettePass)
 
-    // 4. Gamma correction (more compatible than OutputPass across versions)
-    this.gammaPass = new ShaderPass(GammaCorrectionShader)
-    this.composer.addPass(this.gammaPass)
+    this.chromaticPass = new ShaderPass(chromaticShader)
+    this.chromaticUniforms = this.chromaticPass.uniforms
+    this.composer.addPass(this.chromaticPass)
+
+    this.outputPass = new OutputPass()
+    this.composer.addPass(this.outputPass)
+  }
+
+  _killPostTweens() {
+    gsap.killTweensOf(this.bloomPass)
+    gsap.killTweensOf(this.vignetteGrainUniforms.uVignette)
+    gsap.killTweensOf(this.vignetteGrainUniforms.uGrain)
+    gsap.killTweensOf(this.vignetteGrainUniforms.uSaturation)
+    gsap.killTweensOf(this.chromaticUniforms.uAmount)
+  }
+
+  /**
+   * @param {object} profile — bloomStrength, bloomThreshold, bloomRadius, vignette, grain,
+   *   chromaticAberration, saturation (optional, default 1)
+   */
+  crossfadeTo(profile, duration = 1.0) {
+    this._killPostTweens()
+
+    const sat =
+      profile.saturation !== undefined ? profile.saturation : 1.0
+    const bloomOn = this.bloomPass.enabled
+
+    if (duration <= 0) {
+      if (bloomOn) {
+        this.bloomPass.strength = profile.bloomStrength
+        this.bloomPass.threshold = profile.bloomThreshold
+        this.bloomPass.radius = profile.bloomRadius
+      }
+      this.vignetteGrainUniforms.uVignette.value = profile.vignette
+      this.vignetteGrainUniforms.uGrain.value = profile.grain
+      this.vignetteGrainUniforms.uSaturation.value = sat
+      this.chromaticUniforms.uAmount.value = profile.chromaticAberration ?? 0
+      return
+    }
+
+    if (bloomOn) {
+      gsap.to(this.bloomPass, {
+        strength: profile.bloomStrength,
+        threshold: profile.bloomThreshold,
+        radius: profile.bloomRadius,
+        duration,
+        ease: 'power2.inOut',
+      })
+    }
+    gsap.to(this.vignetteGrainUniforms.uVignette, {
+      value: profile.vignette,
+      duration,
+      ease: 'power2.inOut',
+    })
+    gsap.to(this.vignetteGrainUniforms.uGrain, {
+      value: profile.grain,
+      duration,
+      ease: 'power2.inOut',
+    })
+    gsap.to(this.vignetteGrainUniforms.uSaturation, {
+      value: sat,
+      duration,
+      ease: 'power2.inOut',
+    })
+    gsap.to(this.chromaticUniforms.uAmount, {
+      value: profile.chromaticAberration ?? 0,
+      duration,
+      ease: 'power2.inOut',
+    })
   }
 
   render() {
-    // Update time uniform for grain animation
-    this.vignettePass.uniforms.uTime.value = this.experience.time.elapsed
-
-    // Render through the pipeline
+    this.vignetteGrainUniforms.uTime.value = this.experience.time.elapsed
     this.composer.render()
   }
 
@@ -119,18 +148,17 @@ export class PostProcessing {
   }
 
   /**
-   * Adjust post-processing per scene.
-   * Call from SceneManager during transitions.
+   * Instant snap — legacy / loaders (uses old bloom/vignette/grain keys).
    */
   setSceneProfile(profile) {
-    if (profile.bloom !== undefined) {
+    if (profile.bloom !== undefined && this.bloomPass.enabled) {
       this.bloomPass.strength = profile.bloom
     }
     if (profile.vignette !== undefined) {
-      this.vignettePass.uniforms.uVignetteIntensity.value = profile.vignette
+      this.vignetteGrainUniforms.uVignette.value = profile.vignette
     }
     if (profile.grain !== undefined) {
-      this.vignettePass.uniforms.uGrainIntensity.value = profile.grain
+      this.vignetteGrainUniforms.uGrain.value = profile.grain
     }
   }
 }

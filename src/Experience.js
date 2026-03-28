@@ -7,6 +7,8 @@ import { SceneManager } from './core/SceneManager.js'
 import { UIController } from './core/UIController.js'
 import { AssetLoader } from './core/AssetLoader.js'
 import { VirtualScroll } from './core/VirtualScroll.js'
+import { AudioController } from './core/AudioController.js'
+import { getCapabilities } from './core/capabilities.js'
 
 /**
  * Experience — singleton that owns everything.
@@ -19,6 +21,8 @@ export class Experience {
     if (Experience.instance) return Experience.instance
     Experience.instance = this
 
+    this.capabilities = getCapabilities()
+
     // Core refs
     this.canvas = canvas
     this.scene = new THREE.Scene()
@@ -29,6 +33,7 @@ export class Experience {
       height: window.innerHeight,
       pixelRatio: Math.min(window.devicePixelRatio, 2),
     }
+    this._renderFallbackLogged = false
 
     // Boot sequence
     this.assetLoader = new AssetLoader()
@@ -39,18 +44,36 @@ export class Experience {
     this.world = new World()
     this.sceneManager = new SceneManager()
     this.ui = new UIController()
+    this.sceneManager.start()
+    this.audioController = new AudioController()
+    this.audioController.loadTrack('/audio/ambient.mp3')
+
+    this._navScrollIdleTimer = null
+    const nav = document.getElementById('scene-nav')
+    this.virtualScroll.on('scroll', () => {
+      if (!nav) return
+      nav.classList.add('faded')
+      clearTimeout(this._navScrollIdleTimer)
+      this._navScrollIdleTimer = setTimeout(() => {
+        nav.classList.remove('faded')
+      }, 2000)
+    })
+    nav?.addEventListener('mouseenter', () => nav.classList.remove('faded'))
 
     // Events
     window.addEventListener('resize', () => this.onResize())
 
-    // Start loading, then animate
-    this.assetLoader.on('progress', (progress) => {
-      this.ui.updateLoader(progress)
+    // §14.6 — progress(loaded, total), complete + GSAP loader dismissal
+    this.assetLoader.on('progress', (loaded, total) => {
+      this.ui.updateLoader(loaded, total)
     })
 
-    this.assetLoader.on('ready', () => {
-      this.ui.hideLoader()
-      this.sceneManager.start()
+    this.assetLoader.on('complete', () => {
+      try {
+        this.sceneManager.start()
+      } finally {
+        this.ui.completeLoader()
+      }
     })
 
     this.assetLoader.startLoading()
@@ -70,18 +93,34 @@ export class Experience {
   }
 
   tick() {
-    const delta = this.clock.getDelta()
-    this.time.delta = delta
-    this.time.elapsed = this.clock.getElapsedTime()
+    try {
+      const delta = this.clock.getDelta()
+      this.time.delta = delta
+      this.time.elapsed = this.clock.getElapsedTime()
 
-    // Update systems
-    this.camera.update()
-    this.world.update()
-    this.virtualScroll.update()
-    this.sceneManager.update()
+      this.camera.update()
+      this.world.update()
+      this.virtualScroll.update(delta)
+      this.sceneManager.update()
+      this.audioController.updateWithProgress(this.virtualScroll.progress)
 
-    // Render through post-processing pipeline
-    this.postProcessing.render()
+      const progressFill = document.querySelector('.progress-fill')
+      if (progressFill) {
+        progressFill.style.width = `${this.virtualScroll.progress * 100}%`
+      }
+
+      this.postProcessing.render()
+    } catch (err) {
+      if (!this._renderFallbackLogged) {
+        console.error('[Experience] tick/render error, using fallback:', err)
+        this._renderFallbackLogged = true
+      }
+      try {
+        this.renderer.instance.render(this.scene, this.camera.instance)
+      } catch {
+        /* ignore */
+      }
+    }
 
     requestAnimationFrame(() => this.tick())
   }

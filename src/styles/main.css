@@ -11,17 +11,23 @@
 :root {
   --font-display: 'Cormorant Garamond', Georgia, serif;
   --font-body: 'Inter', -apple-system, sans-serif;
-  --color-bg: #0a0a0c;
-  --color-text: #e8e4de;
-  --color-text-muted: #888580;
-  --color-accent-owen: #c41e3a;
-  --color-accent-yilin: #9a9a9a;
+  --paper: #faf7f2;
+  --linen: #f0ebe3;
+  --color-bg: var(--paper);
+  --color-text: #3a3028;
+  --color-text-muted: #7a6e62;
+  --champagne: #c9a96e;
+  --blush: #d4a4a0;
+  --sage: #b5bfa4;
+  --rose-gold: #c7937a;
+  --color-accent-owen: #ed1b2f;
+  --color-accent-yilin: #8fa4b8;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html, body {
   overflow: hidden;
-  background: var(--color-bg);
+  background: var(--paper);
   color: var(--color-text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -45,7 +51,7 @@ canvas#webgl {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: var(--color-bg);
+  background: var(--paper);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -65,7 +71,7 @@ canvas#webgl {
 .loader-bar {
   width: 200px;
   height: 2px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(58, 48, 40, 0.12);
   border-radius: 1px;
   overflow: hidden;
   margin-bottom: 16px;
@@ -74,7 +80,7 @@ canvas#webgl {
 .loader-fill {
   width: 0%;
   height: 100%;
-  background: var(--color-text);
+  background: var(--champagne);
   transition: width 0.3s ease;
 }
 
@@ -97,9 +103,8 @@ canvas#webgl {
   pointer-events: none;
 }
 
-#ui-overlay * {
-  pointer-events: auto;
-}
+/* No #ui-overlay * { pointer-events: auto } — that overrides .scene-text (ID
+   beats class) and blankets the viewport, hurting trackpad wheel routing. */
 
 /* =============================================
    SCENE TEXT
@@ -107,8 +112,13 @@ canvas#webgl {
 
 .scene-text {
   position: absolute;
+  inset: 0;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 6vw;
   opacity: 0;
-  transition: opacity 1.2s var(--ease-out-expo);
+  pointer-events: none;
 }
 
 .scene-text.visible {
@@ -117,9 +127,9 @@ canvas#webgl {
 
 .scene-label {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: clamp(0.7rem, 1.5vw, 0.9rem);
   font-weight: 400;
-  letter-spacing: 4px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-text-muted);
   margin-bottom: 12px;
@@ -135,11 +145,217 @@ canvas#webgl {
   margin-bottom: 32px;
 }
 
-/* Scene 1 specific layout */
+/* Per-scene layout (GSAP also drives opacity / display) */
+#scene-0-text {
+  align-items: center;
+  text-align: center;
+}
+
+.title-names {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 8vw, 6rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+
+.title-date {
+  font-family: var(--font-body);
+  font-size: 14px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
 #scene-1-text {
-  bottom: 8vh;
-  left: 6vw;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-bottom: 8vh;
+  padding-left: 6vw;
+  max-width: 520px;
+}
+
+#scene-1-text .scene-details {
   max-width: 480px;
+}
+
+#scene-2-text,
+#scene-3-text {
+  align-items: flex-start;
+  justify-content: center;
+  padding-left: 8vw;
+  max-width: 560px;
+}
+
+.scene-body {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.2vw, 22px);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-text);
+  margin-top: 8px;
+}
+
+.love-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-top: 16px;
+}
+
+.love-owen,
+.love-yilin {
+  flex: 1 1 200px;
+  padding: 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+}
+
+.love-owen {
+  background: rgba(237, 27, 47, 0.08);
+  border: 1px solid rgba(237, 27, 47, 0.12);
+}
+
+.love-yilin {
+  background: rgba(143, 164, 184, 0.1);
+  border: 1px solid rgba(143, 164, 184, 0.22);
+}
+
+.love-quote {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.love-attr {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+}
+
+#scene-4-text {
+  align-items: center;
+  justify-content: center;
+}
+
+.invitation-card {
+  max-width: 420px;
+  padding: 40px 36px;
+  text-align: center;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  box-shadow: 0 12px 40px rgba(58, 48, 40, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.inv-prelude {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+
+.inv-names {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 5vw, 3.5rem);
+  font-weight: 400;
+  margin-bottom: 20px;
+}
+
+.inv-action {
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.5;
+  margin-bottom: 28px;
+}
+
+.inv-details p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.inv-date {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: #c9a96e;
+}
+
+.inv-address {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.inv-meta {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.8;
+}
+
+.inv-actions {
+  margin-top: 28px;
+}
+
+.inv-rsvp-btn {
+  display: inline-block;
+  padding: 12px 36px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #1a1512;
+  background: linear-gradient(135deg, #c9a96e, #c7937a);
+  border-radius: 2px;
+  pointer-events: auto;
+}
+
+.inv-rsvp-btn:hover {
+  filter: brightness(1.08);
+}
+
+/* §14.5 — audio (matches warm UI) */
+.audio-btn {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 100;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 169, 110, 0.4);
+  background: rgba(250, 247, 242, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--champagne);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.3s, background 0.3s, color 0.3s;
+}
+
+.audio-btn:hover {
+  border-color: rgba(201, 169, 110, 0.65);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.audio-btn.playing {
+  background: rgba(201, 169, 110, 0.22);
+  border-color: rgba(201, 169, 110, 0.55);
+}
+
+.audio-icon {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .scene-details {
@@ -172,13 +388,13 @@ canvas#webgl {
 }
 
 .thought-owen {
-  background: rgba(196, 30, 58, 0.08);
-  border: 1px solid rgba(196, 30, 58, 0.15);
+  background: rgba(237, 27, 47, 0.08);
+  border: 1px solid rgba(237, 27, 47, 0.15);
 }
 
 .thought-yilin {
-  background: rgba(160, 160, 160, 0.08);
-  border: 1px solid rgba(160, 160, 160, 0.15);
+  background: rgba(143, 164, 184, 0.1);
+  border: 1px solid rgba(143, 164, 184, 0.22);
 }
 
 .thought p {
@@ -201,24 +417,26 @@ canvas#webgl {
    SCROLL PROGRESS
    ============================================= */
 
+/* §14.7 — bottom horizontal scroll track */
 #scroll-progress {
   position: fixed;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 120px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 1px;
-  z-index: 20;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: rgba(58, 48, 40, 0.1);
+  border-radius: 0;
+  z-index: 25;
+  pointer-events: none;
 }
 
 .progress-fill {
-  width: 100%;
-  height: 0%;
-  background: var(--color-text);
-  border-radius: 1px;
-  transition: height 0.3s ease;
+  width: 0%;
+  height: 100%;
+  background: var(--champagne);
+  border-radius: 0;
+  transition: width 0.2s ease-out;
 }
 
 /* =============================================
@@ -232,15 +450,25 @@ canvas#webgl {
   transform: translateY(-50%) translateX(40px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   z-index: 20;
+  transition: opacity 0.35s ease;
+  pointer-events: auto;
+}
+
+#scene-nav.faded {
+  opacity: 0.3;
+}
+
+#scene-nav:hover {
+  opacity: 1 !important;
 }
 
 .nav-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(58, 48, 40, 0.25);
   background: transparent;
   cursor: pointer;
   position: relative;
@@ -249,8 +477,8 @@ canvas#webgl {
 }
 
 .nav-dot.active {
-  background: var(--color-text);
-  border-color: var(--color-text);
+  background: var(--champagne);
+  border-color: var(--champagne);
 }
 
 .nav-dot span {
@@ -276,10 +504,11 @@ canvas#webgl {
    ============================================= */
 
 @media (max-width: 768px) {
-  #scene-1-text {
-    bottom: 4vh;
-    left: 4vw;
-    right: 4vw;
+  #scene-1-text,
+  #scene-2-text,
+  #scene-3-text {
+    padding-left: 5vw;
+    padding-right: 5vw;
     max-width: none;
   }
 
@@ -291,8 +520,20 @@ canvas#webgl {
     font-size: 15px;
   }
 
-  #scroll-progress,
+  .love-split {
+    flex-direction: column;
+  }
+
   #scene-nav {
     display: none;
+  }
+
+  .audio-btn {
+    top: 1rem;
+    right: 1rem;
+    left: auto;
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
   }
 }

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Owen & Yilin — A Story</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,38 +15,93 @@
   <div id="loader">
     <div class="loader-inner">
       <div class="loader-bar"><div class="loader-fill"></div></div>
-      <p class="loader-text">Loading scene...</p>
+      <p class="loader-text">Loading story...</p>
     </div>
   </div>
 
-  <!-- UI overlay (all text rendered in HTML, positioned over WebGL) -->
+  <!-- Audio button -->
+  <button id="audio-toggle" class="audio-btn" type="button" aria-label="Toggle music">
+    <span class="audio-icon">♪</span>
+  </button>
+
+  <!-- UI overlay -->
   <div id="ui-overlay">
-    <!-- Scene 1 text -->
+
+    <!-- Scene 0: Title -->
+    <div class="scene-text" id="scene-0-text">
+      <h1 class="title-names">Owen & Yilin</h1>
+      <p class="title-date">October 15, 2026</p>
+    </div>
+
+    <!-- Scene 1: How They Met -->
     <div class="scene-text" id="scene-1-text">
-      <h2 class="scene-label">Scene 1</h2>
-      <h1 class="scene-title">How They Met</h1>
+      <h2 class="scene-label">How We Met</h2>
       <div class="scene-details">
         <div class="thought thought-owen">
           <p>"She asked me where Brazil was."</p>
-          <span class="thought-attr">— Owen's first impression: a curious one</span>
+          <span class="thought-attr">— Owen</span>
         </div>
         <div class="thought thought-yilin">
           <p>"Loud Chinese guy."</p>
-          <span class="thought-attr">— Yilin's first impression</span>
+          <span class="thought-attr">— Yilin</span>
         </div>
       </div>
     </div>
 
-    <!-- Scroll progress -->
+    <!-- Scene 2: First Date -->
+    <div class="scene-text" id="scene-2-text">
+      <h2 class="scene-label">First Date</h2>
+      <p class="scene-body">The nervous energy of two people discovering each other...</p>
+    </div>
+
+    <!-- Scene 3: Falling in Love -->
+    <div class="scene-text" id="scene-3-text">
+      <h2 class="scene-label">Falling in Love</h2>
+      <div class="love-split">
+        <div class="love-owen">
+          <p class="love-quote">"I knew when..."</p>
+          <span class="love-attr">— Owen</span>
+        </div>
+        <div class="love-yilin">
+          <p class="love-quote">"I knew when..."</p>
+          <span class="love-attr">— Yilin</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 4: Invitation -->
+    <div class="scene-text" id="scene-4-text">
+      <div class="invitation-card">
+        <p class="inv-prelude">Together with their families</p>
+        <h1 class="inv-names">Owen & Yilin</h1>
+        <p class="inv-action">request the pleasure of your company<br>at their wedding celebration</p>
+        <div class="inv-details">
+          <p class="inv-date">Saturday, October 15, 2026</p>
+          <p class="inv-time">at five o'clock in the evening</p>
+          <p class="inv-venue">Venue Name<br><span class="inv-address">123 Wedding Lane, City, State</span></p>
+        </div>
+        <div class="inv-meta">
+          <p>Cocktail Attire</p>
+          <p>Dinner & Dancing to Follow</p>
+        </div>
+        <div class="inv-actions">
+          <a href="#" class="inv-rsvp-btn">RSVP</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll progress bar -->
     <div id="scroll-progress">
       <div class="progress-fill"></div>
     </div>
 
-    <!-- Navigation dots -->
+    <!-- Navigation dots (5 scenes) -->
     <nav id="scene-nav">
-      <button class="nav-dot active" data-scene="0"><span>How they met</span></button>
-      <button class="nav-dot" data-scene="1"><span>Scene 2</span></button>
-      <button class="nav-dot" data-scene="2"><span>Scene 3</span></button>
+      <button type="button" class="nav-dot active" data-scene="0"><span>Owen & Yilin</span></button>
+      <button type="button" class="nav-dot" data-scene="1"><span>How We Met</span></button>
+      <button type="button" class="nav-dot" data-scene="2"><span>First Date</span></button>
+      <button type="button" class="nav-dot" data-scene="3"><span>Falling in Love</span></button>
+      <button type="button" class="nav-dot" data-scene="4"><span>The Invitation</span></button>
     </nav>
   </div>
 
