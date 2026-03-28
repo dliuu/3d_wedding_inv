@@ -20,7 +20,8 @@ export class VirtualScroll extends EventEmitter {
       '(prefers-reduced-motion: reduce)'
     ).matches
 
-    this._wheelFactor = 0.0024
+    /* ~2× more trackpad travel per scene vs prior 0.0024 */
+    this._wheelFactor = 0.0012
 
     this._touchStartY = 0
     this._touchLastY = 0
@@ -60,6 +61,7 @@ export class VirtualScroll extends EventEmitter {
       this._goToTween = null
     }
     this._emitScroll()
+    this.emit('userinput')
   }
 
   _onTouchStart(e) {
@@ -74,21 +76,22 @@ export class VirtualScroll extends EventEmitter {
     this._touchLastY = y
     const h = window.innerHeight || 1
     this.targetProgress = this._clamp01(
-      this.targetProgress + (deltaY / h) * 0.22
+      this.targetProgress + (deltaY / h) * 0.11
     )
     if (this._goToTween) {
       this._goToTween.kill()
       this._goToTween = null
     }
     this._emitScroll()
+    this.emit('userinput')
   }
 
   _onKeyDown(e) {
     let delta = 0
     if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
-      delta = 0.035
+      delta = 0.0175
     } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-      delta = -0.035
+      delta = -0.0175
     }
     if (delta === 0) return
     e.preventDefault()
@@ -98,6 +101,7 @@ export class VirtualScroll extends EventEmitter {
       this._goToTween = null
     }
     this._emitScroll()
+    this.emit('userinput')
   }
 
   setProgress(p) {
@@ -112,13 +116,19 @@ export class VirtualScroll extends EventEmitter {
     this._emitScroll()
   }
 
-  goTo(targetProgress, duration = 1.5) {
+  /**
+   * @param {number} targetProgress
+   * @param {number} [duration=1.5]
+   * @param {() => void} [onArrive] — after target is reached (auto-advance timing)
+   */
+  goTo(targetProgress, duration = 1.5, onArrive) {
     const t = this._clamp01(targetProgress)
     if (this._goToTween) this._goToTween.kill()
 
     if (this.prefersReducedMotion || duration <= 0) {
       this.targetProgress = t
       this._emitScroll()
+      onArrive?.()
       return
     }
 
@@ -135,6 +145,7 @@ export class VirtualScroll extends EventEmitter {
         this.targetProgress = t
         this._goToTween = null
         this._emitScroll()
+        onArrive?.()
       },
     })
   }

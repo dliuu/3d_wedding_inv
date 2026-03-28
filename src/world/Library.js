@@ -97,8 +97,8 @@ export class Library {
       fixture: new THREE.MeshStandardMaterial({
         color: 0x999999,
         roughness: 0.4,
-        emissive: 0xffffff,
-        emissiveIntensity: 0.15,
+        emissive: 0xc8c4c0,
+        emissiveIntensity: 0.04,
       }),
     }
   }

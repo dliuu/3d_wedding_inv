@@ -30,7 +30,7 @@ export class Renderer {
 
     // Tone mapping
     this.instance.toneMapping = THREE.ACESFilmicToneMapping
-    this.instance.toneMappingExposure = 1.0
+    this.instance.toneMappingExposure = 0.88
 
     // Color space
     this.instance.outputColorSpace = THREE.SRGBColorSpace

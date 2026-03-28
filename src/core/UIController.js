@@ -26,6 +26,7 @@ export class UIController {
         if (!scene) return
         const targetProgress = scene.progressStart + 0.01
         this.experience.virtualScroll.goTo(targetProgress, 1.5)
+        this.experience.markUserDirectedNavigation()
       })
     })
   }

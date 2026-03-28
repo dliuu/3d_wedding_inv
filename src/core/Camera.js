@@ -53,7 +53,6 @@ export class Camera {
     this.targetFov = p0.fov
 
     this.damping = 0.03
-    this.fovDamping = 0.05
 
     this.idleDrift = {
       enabled: true,
@@ -85,12 +84,13 @@ export class Camera {
     gsap.killTweensOf(this.targetLookAt)
     gsap.killTweensOf(this)
 
+    this.targetFov = pose.fov
+    this.instance.fov = pose.fov
+    this.instance.updateProjectionMatrix()
+
     if (this.prefersReducedMotion || duration === 0) {
       this.targetPosition.copy(pose.position)
       this.targetLookAt.copy(pose.lookAt)
-      this.targetFov = pose.fov
-      this.instance.fov = pose.fov
-      this.instance.updateProjectionMatrix()
       return
     }
 
@@ -108,18 +108,6 @@ export class Camera {
       z: pose.lookAt.z,
       duration,
       ease: 'power2.inOut',
-    })
-
-    const tl = gsap.timeline()
-    tl.to(this, {
-      targetFov: pose.fov + 10,
-      duration: duration * 0.4,
-      ease: 'power2.in',
-    })
-    tl.to(this, {
-      targetFov: pose.fov,
-      duration: duration * 0.6,
-      ease: 'power2.out',
     })
   }
 
@@ -153,7 +141,7 @@ export class Camera {
     this.lookAtTarget.z +=
       (this.targetLookAt.z - this.lookAtTarget.z) * this.damping
 
-    this.instance.fov += (this.targetFov - this.instance.fov) * this.fovDamping
+    this.instance.fov = this.targetFov
     this.instance.updateProjectionMatrix()
 
     this.instance.position.copy(this.position)

@@ -55,9 +55,9 @@ export class PostProcessing {
 
     this.bloomPass = new UnrealBloomPass(
       new THREE.Vector2(this.sizes.width, this.sizes.height),
-      0.4,
-      0.4,
-      0.85
+      0.18,
+      0.32,
+      0.92
     )
     this.bloomPass.enabled = !cap.disableBloom
     this.composer.addPass(this.bloomPass)

@@ -24,8 +24,8 @@ export class CoffeeShop {
       metalness: 0,
     })
     const matMilk = new THREE.MeshStandardMaterial({
-      color: 0xe8ddd0,
-      roughness: 0.55,
+      color: 0xd8cfc4,
+      roughness: 0.58,
       metalness: 0,
     })
 

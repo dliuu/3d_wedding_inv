@@ -8,5 +8,6 @@ void main() {
   float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
   alpha *= vLife;
 
-  gl_FragColor = vec4(vColor, alpha);
+  vec3 rgb = vColor * 0.68;
+  gl_FragColor = vec4(rgb, alpha);
 }
