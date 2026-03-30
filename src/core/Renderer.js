@@ -18,8 +18,9 @@ export class Renderer {
     this.scene = this.experience.scene
     this.camera = this.experience.camera
 
+    const canvasEl = this.canvas ?? undefined
     this.instance = new THREE.WebGLRenderer({
-      canvas: this.canvas,
+      canvas: canvasEl,
       antialias: true,
       alpha: false,
       powerPreference: 'high-performance',
@@ -40,7 +41,7 @@ export class Renderer {
     this.instance.shadowMap.type = THREE.PCFSoftShadowMap
 
     // Background
-    this.instance.setClearColor(0xfaf7f2, 1)
+    this.instance.setClearColor(0x12100e, 1)
   }
 
   onResize() {

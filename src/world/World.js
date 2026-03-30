@@ -1,24 +1,48 @@
 import { Experience } from '../Experience.js'
 import { Environment } from './Environment.js'
-import { Library } from './Library.js'
-import { CoffeeShop } from './CoffeeShop.js'
-import { InvitationCard } from './InvitationCard.js'
+import { Building } from './Building.js'
 import { Characters } from './Characters.js'
 import { Particles } from './Particles.js'
+import { TitleRoom } from './rooms/TitleRoom.js'
+import { LibraryRoom } from './rooms/LibraryRoom.js'
+import { CafeRoom } from './rooms/CafeRoom.js'
+import { LoveRoom } from './rooms/LoveRoom.js'
+import { InvitationRoom } from './rooms/InvitationRoom.js'
 
 /**
- * Single THREE.Scene graph — visibility per narrative scene (§14.1).
+ * World — owns all 3D content.
+ *
+ * All 5 rooms are always present in the scene graph (no visibility toggling).
+ * Fog + frustum culling naturally hides distant rooms.
+ * The Building adds staircases between floors.
  */
 export class World {
   constructor() {
     this.experience = Experience.instance
     this.scene = this.experience.scene
 
+    // Structural
     this.environment = new Environment()
-    this.library = new Library()
-    this.coffeeShop = new CoffeeShop()
-    this.invitationCard = new InvitationCard()
+    this.building = new Building(this.scene)
+
+    // Rooms (each adds itself via Room base class → this.group → scene)
+    this.rooms = {
+      title: new TitleRoom(),
+      library: new LibraryRoom(),
+      cafe: new CafeRoom(),
+      love: new LoveRoom(),
+      invitation: new InvitationRoom(),
+    }
+
+    // Add all room groups to scene
+    for (const room of Object.values(this.rooms)) {
+      this.scene.add(room.group)
+    }
+
+    // Characters (positioned relative to library room at floorY=4)
     this.characters = new Characters()
+
+    // Particles (global system, targets at various Y heights)
     this.particles = new Particles()
   }
 
@@ -28,20 +52,17 @@ export class World {
     this.particles.update(time)
   }
 
-  onSceneChange(newScene, prevScene) {
-    // Legacy — SceneManager uses setActiveScene(id).
-  }
-
-  setActiveScene(id) {
-    this.library.group.visible = id === 'how-they-met'
-    this.coffeeShop.group.visible = id === 'first-date'
-    this.invitationCard.group.visible = id === 'invitation'
-
-    if (id === 'how-they-met') {
+  /**
+   * Called by SceneManager when floor changes.
+   * Used to show/hide characters based on which floor the camera is on.
+   */
+  setActiveFloor(floorId) {
+    // Characters only visible on floors 1 (library) and 2 (cafe)
+    if (floorId === 'how-they-met') {
       this.characters.setCharactersVisible(true)
       this.characters.setTablePropsVisible(true)
       this.characters.applySceneLayout('how-they-met')
-    } else if (id === 'first-date') {
+    } else if (floorId === 'first-date') {
       this.characters.setCharactersVisible(true)
       this.characters.setTablePropsVisible(false)
       this.characters.applySceneLayout('first-date')

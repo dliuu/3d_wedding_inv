@@ -1,6 +1,6 @@
 import { Experience } from '../Experience.js'
 import gsap from 'gsap'
-import { SCENES } from './SceneManager.js'
+import { FLOORS } from './constants.js'
 
 /**
  * HTML overlay: loader, scene copy, nav dots, scroll-chrome fade.
@@ -21,12 +21,11 @@ export class UIController {
 
     document.querySelectorAll('.nav-dot').forEach((dot) => {
       dot.addEventListener('click', () => {
-        const sceneIndex = parseInt(dot.dataset.scene, 10)
-        const scene = SCENES[sceneIndex]
-        if (!scene) return
-        const targetProgress = scene.progressStart + 0.01
+        const floorIndex = parseInt(dot.dataset.floor, 10)
+        const floor = FLOORS[floorIndex]
+        if (!floor) return
+        const targetProgress = floor.progressStart + 0.01
         this.experience.virtualScroll.goTo(targetProgress, 1.5)
-        this.experience.markUserDirectedNavigation()
       })
     })
   }

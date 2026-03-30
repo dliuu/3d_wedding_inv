@@ -39,7 +39,7 @@ export class Particles {
 
   _maybeRefreshTitleScene() {
     const sm = this.experience.sceneManager
-    if (!sm?._booted || sm.currentSceneIndex !== 0) return
+    if (!sm?._booted || sm.currentFloorIndex !== 0) return
     this.setTarget('title', 1.2)
   }
 
@@ -72,17 +72,21 @@ export class Particles {
 
   _titleFallbackCloud() {
     return this.randomBox(
-      { x: -4, y: -0.5, z: -1 },
-      { x: 4, y: 2, z: 1 },
+      { x: -4, y: 0.5, z: -1 },
+      { x: 4, y: 2.5, z: 1 },
       new THREE.Color(0xc9a96e),
       new THREE.Color(0xc7937a)
     )
   }
 
   _buildTargetsSync() {
+    const FH = 4.0 // FLOOR_HEIGHT — inline to avoid circular imports at construction
+
+    this.targets.title = this._titleFallbackCloud()
+
     this.targets.dust = this.randomBox(
-      { x: -3, y: 1.5, z: -3 },
-      { x: 3, y: 4, z: 3 },
+      { x: -3, y: FH + 1.5, z: -3 },
+      { x: 3, y: FH + 3.8, z: 3 },
       new THREE.Color(0xf5ebd8),
       new THREE.Color(0xe8d4a8)
     )
@@ -90,21 +94,21 @@ export class Particles {
     this.targets['date-silhouette'] = this.sampleSphere(
       2.0,
       new THREE.Color(0xc9a96e),
-      new THREE.Color(0xd4a4a0)
+      new THREE.Color(0xd4a4a0),
+      new THREE.Vector3(0, 2 * FH + 1.8, 0)
     )
 
-    const separated = this.twoSpheres(3.0, 1.5)
-    this.targets['merge-separated'] = separated
-    this.targets.merge = separated
-
+    const mergeCenter = new THREE.Vector3(0, 3 * FH + 1.8, 0)
+    this.targets['merge-separated'] = this.twoSpheres(3.0, 1.5, mergeCenter)
+    this.targets.merge = this.targets['merge-separated']
     this.targets['merge-unified'] = this.sampleSphere(
       2.0,
       new THREE.Color(0xd4b483),
-      new THREE.Color(0xd4a4a0)
+      new THREE.Color(0xd4a4a0),
+      mergeCenter
     )
 
-    this.targets['card-border'] = this.rectangleBorder(4, 5.5, 0.3)
-    this.targets.title = this._titleFallbackCloud()
+    this.targets['card-border'] = this.rectangleBorder(4, 5.5, 0.3, new THREE.Vector3(0, 4 * FH + 1.5, 0))
   }
 
   sampleTextGeometry(text) {
@@ -120,6 +124,7 @@ export class Particles {
       bevelEnabled: false,
     })
     geom.center()
+    geom.translate(0, 1.5, 0)
     geom.computeVertexNormals()
 
     const goldA = new THREE.Color(0xc9a96e)
@@ -172,7 +177,10 @@ export class Particles {
     return { positions, colors }
   }
 
-  sampleSphere(radius, colorA, colorB) {
+  sampleSphere(radius, colorA, colorB, center) {
+    const cx = center?.x ?? 0
+    const cy = center?.y ?? 0
+    const cz = center?.z ?? 0
     const positions = new Float32Array(this.count * 3)
     const colors = new Float32Array(this.count * 3)
 
@@ -180,9 +188,9 @@ export class Particles {
       const u = Math.random() * Math.PI * 2
       const v = Math.acos(2 * Math.random() - 1)
       const r = radius * (0.75 + Math.random() * 0.25)
-      positions[i * 3] = r * Math.sin(v) * Math.cos(u)
-      positions[i * 3 + 1] = r * Math.sin(v) * Math.sin(u)
-      positions[i * 3 + 2] = r * Math.cos(v)
+      positions[i * 3] = r * Math.sin(v) * Math.cos(u) + cx
+      positions[i * 3 + 1] = r * Math.sin(v) * Math.sin(u) + cy
+      positions[i * 3 + 2] = r * Math.cos(v) + cz
 
       const c = Math.random() > 0.5 ? colorA : colorB
       colors[i * 3] = c.r
@@ -192,7 +200,10 @@ export class Particles {
     return { positions, colors }
   }
 
-  twoSpheres(distance, radius) {
+  twoSpheres(distance, radius, center) {
+    const cx = center?.x ?? 0
+    const cy = center?.y ?? 0
+    const cz = center?.z ?? 0
     const positions = new Float32Array(this.count * 3)
     const colors = new Float32Array(this.count * 3)
     const mauve = new THREE.Color(0xc4a0aa)
@@ -207,9 +218,9 @@ export class Particles {
       const y = r * Math.sin(v) * Math.sin(u)
       const z = r * Math.cos(v)
       const ox = left ? -distance : distance
-      positions[i * 3] = x + ox
-      positions[i * 3 + 1] = y
-      positions[i * 3 + 2] = z
+      positions[i * 3] = x + ox + cx
+      positions[i * 3 + 1] = y + cy
+      positions[i * 3 + 2] = z + cz
 
       const c = left ? mauve : amber
       colors[i * 3] = c.r
@@ -219,7 +230,10 @@ export class Particles {
     return { positions, colors }
   }
 
-  rectangleBorder(width, height, thickness) {
+  rectangleBorder(width, height, thickness, center) {
+    const cx = center?.x ?? 0
+    const cy = center?.y ?? 0
+    const cz = center?.z ?? 0
     const positions = new Float32Array(this.count * 3)
     const colors = new Float32Array(this.count * 3)
     const gold = new THREE.Color(0xc9a96e)
@@ -247,9 +261,9 @@ export class Particles {
         z = (Math.random() * 2 - 1) * hh
       }
 
-      positions[i * 3] = x
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 0.15
-      positions[i * 3 + 2] = z
+      positions[i * 3] = x + cx
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 0.15 + cy
+      positions[i * 3 + 2] = z + cz
 
       const c = Math.random() > 0.92 ? sage : gold
       colors[i * 3] = c.r

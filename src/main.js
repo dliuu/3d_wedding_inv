@@ -7,10 +7,9 @@
  *     ├── Camera (cinematic camera rig)
  *     ├── World
  *     │   ├── Environment (lights, fog, atmosphere)
- *     │   ├── Library (the monochrome library environment)
+ *     │   ├── Building (staircases) + five floor rooms
  *     │   ├── Characters (Owen & Yilin — colored, load .glb models)
- *     │   └── Props (table items, books, etc.)
- *     ├── Particles (dust motes in library light)
+ *     │   └── Particles (global morph targets per floor)
  *     ├── PostProcessing (bloom, DOF, vignette, grain)
  *     ├── SceneManager (handles transitions between scenes)
  *     └── UIController (HTML overlay, text, progress)

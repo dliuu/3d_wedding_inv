@@ -1,52 +1,37 @@
 import * as THREE from 'three'
 import { Experience } from '../Experience.js'
+import { FLOORS, STAIRS } from './constants.js'
 
-export const SCENES = [
+/**
+ * SceneManager — maps scroll progress to floor transitions.
+ *
+ * Progress 0–1 is divided into alternating "in room" and "staircase" zones.
+ * During in-room zones: text overlays show, onProgress() fires, camera settles.
+ * During staircase zones: text hides, post-FX crossfades, particles scatter.
+ */
+
+// Per-floor configuration
+const FLOOR_CONFIGS = [
   {
     id: 'title',
-    progressStart: 0.0,
-    progressEnd: 0.2,
-    camera: 0,
     postProfile: {
-      bloomStrength: 0.18,
-      bloomThreshold: 0.94,
-      bloomRadius: 0.25,
-      vignette: 0.28,
-      grain: 0.02,
-      chromaticAberration: 0.0,
-      saturation: 0.98,
+      bloomStrength: 0.22, bloomThreshold: 0.92, bloomRadius: 0.28,
+      vignette: 0.32, grain: 0.02, chromaticAberration: 0.0, saturation: 0.98,
     },
     textElement: 'scene-0-text',
     particleTarget: 'title',
-    onEnter: null,
-    onExit: null,
     onProgress: (lp) => {
-      const exp = Experience.instance
-      if (!exp) return
-      const z = 20 - lp * 8
-      exp.camera.poses[0].position.z = z
-      exp.camera.targetPosition.z = z
-      exp.environment.sceneSpot.intensity = 0.06 + lp * 0.28
+      // Particle title intensifies as you scroll deeper into the room
     },
   },
   {
     id: 'how-they-met',
-    progressStart: 0.2,
-    progressEnd: 0.4,
-    camera: 1,
     postProfile: {
-      bloomStrength: 0.2,
-      bloomThreshold: 0.92,
-      bloomRadius: 0.22,
-      vignette: 0.32,
-      grain: 0.02,
-      chromaticAberration: 0.0,
-      saturation: 0.98,
+      bloomStrength: 0.2, bloomThreshold: 0.92, bloomRadius: 0.22,
+      vignette: 0.32, grain: 0.02, chromaticAberration: 0.0, saturation: 0.98,
     },
     textElement: 'scene-1-text',
     particleTarget: 'dust',
-    onEnter: null,
-    onExit: null,
     onProgress: (lp) => {
       const owen = document.querySelector('.thought-owen')
       const yilin = document.querySelector('.thought-yilin')
@@ -56,58 +41,30 @@ export const SCENES = [
   },
   {
     id: 'first-date',
-    progressStart: 0.4,
-    progressEnd: 0.6,
-    camera: 2,
     postProfile: {
-      bloomStrength: 0.22,
-      bloomThreshold: 0.9,
-      bloomRadius: 0.28,
-      vignette: 0.22,
-      grain: 0.015,
-      chromaticAberration: 0.0,
-      saturation: 1.0,
+      bloomStrength: 0.22, bloomThreshold: 0.9, bloomRadius: 0.28,
+      vignette: 0.22, grain: 0.015, chromaticAberration: 0.0, saturation: 1.0,
     },
     textElement: 'scene-2-text',
     particleTarget: 'date-silhouette',
-    onEnter: null,
-    onExit: null,
     onProgress: (lp) => {
-      const exp = Experience.instance
-      if (!exp) return
-      const angle = lp * Math.PI * 0.5
-      const r = 3
-      exp.camera.targetPosition.x = Math.cos(angle) * r
-      exp.camera.targetPosition.z = Math.sin(angle) * r
-      exp.camera.targetPosition.y = 1.5
+      // Could animate camera orbit, candle flicker, etc.
     },
   },
   {
     id: 'falling-in-love',
-    progressStart: 0.6,
-    progressEnd: 0.8,
-    camera: 3,
     postProfile: {
-      bloomStrength: 0.26,
-      bloomThreshold: 0.9,
-      bloomRadius: 0.32,
-      vignette: 0.2,
-      grain: 0.012,
-      chromaticAberration: 0.0,
-      saturation: 1.02,
+      bloomStrength: 0.28, bloomThreshold: 0.88, bloomRadius: 0.35,
+      vignette: 0.18, grain: 0.012, chromaticAberration: 0.0, saturation: 1.02,
     },
     textElement: 'scene-3-text',
     particleTarget: 'merge',
-    onEnter: null,
-    onExit: null,
     onProgress: (localProgress) => {
       const exp = Experience.instance
       const p = exp?.world?.particles
       if (p?.geometry) {
         const mergeProgress = THREE.MathUtils.clamp(
-          (localProgress - 0.3) / 0.5,
-          0,
-          1
+          (localProgress - 0.2) / 0.6, 0, 1
         )
         const separated = p.targets['merge-separated']?.positions
         const unified = p.targets['merge-unified']?.positions
@@ -128,22 +85,12 @@ export const SCENES = [
   },
   {
     id: 'invitation',
-    progressStart: 0.8,
-    progressEnd: 1.0,
-    camera: 4,
     postProfile: {
-      bloomStrength: 0.14,
-      bloomThreshold: 0.95,
-      bloomRadius: 0.2,
-      vignette: 0.14,
-      grain: 0.01,
-      chromaticAberration: 0.0,
-      saturation: 0.98,
+      bloomStrength: 0.14, bloomThreshold: 0.95, bloomRadius: 0.2,
+      vignette: 0.14, grain: 0.01, chromaticAberration: 0.0, saturation: 0.98,
     },
     textElement: 'scene-4-text',
     particleTarget: 'card-border',
-    onEnter: null,
-    onExit: null,
     onProgress: (lp) => {
       const card = document.querySelector('.invitation-card')
       if (card) {
@@ -158,93 +105,126 @@ export const SCENES = [
   },
 ]
 
-/**
- * Maps scroll progress → scene transitions, camera, post-FX, UI, world.
- */
+export { FLOORS }
+
 export class SceneManager {
   constructor() {
     this.experience = Experience.instance
-    this.scenes = SCENES
-    this.currentSceneIndex = -1
+    this.currentFloorIndex = -1
     this._booted = false
-  }
-
-  getSceneIndex(progress) {
-    for (let i = SCENES.length - 1; i >= 0; i--) {
-      if (progress >= SCENES[i].progressStart) return i
-    }
-    return 0
   }
 
   start() {
     if (this._booted) return
-    this.applySceneEnter(0, /* instant */ true)
-    this.currentSceneIndex = 0
+    this._applyFloorEnter(0, true)
+    this.currentFloorIndex = 0
     this._booted = true
   }
 
-  applySceneEnter(sceneIndex, instant = false) {
-    const newScene = SCENES[sceneIndex]
-    const oldIndex = this.currentSceneIndex
-    const oldScene = oldIndex >= 0 ? SCENES[oldIndex] : null
+  /**
+   * Determine which floor the progress falls in.
+   * Returns -1 if in a staircase transition zone.
+   */
+  _getFloorIndex(progress) {
+    for (let i = 0; i < FLOORS.length; i++) {
+      if (progress >= FLOORS[i].progressStart && progress <= FLOORS[i].progressEnd) {
+        return i
+      }
+    }
+    return -1
+  }
 
-    if (oldScene?.onExit) oldScene.onExit()
-    if (newScene.onEnter) newScene.onEnter()
+  /**
+   * Get the nearest floor index (for staircase zones, returns the lower floor).
+   */
+  _getNearestFloor(progress) {
+    const exact = this._getFloorIndex(progress)
+    if (exact >= 0) return exact
+    // We're in a staircase — find which one
+    for (const stair of STAIRS) {
+      if (progress >= stair.progressStart && progress <= stair.progressEnd) {
+        return stair.from
+      }
+    }
+    return 0
+  }
 
-    const camDuration = instant ? 0 : 1.5
-    const postDuration = instant ? 0 : 1.0
+  _isInStaircase(progress) {
+    return this._getFloorIndex(progress) === -1
+  }
 
-    if (newScene.id === 'title') {
-      const p0 = this.experience.camera.poses[0].position
-      p0.set(0, 2, 20)
+  _applyFloorEnter(floorIndex, instant = false) {
+    const config = FLOOR_CONFIGS[floorIndex]
+    if (!config) return
+
+    const oldIndex = this.currentFloorIndex
+    const oldConfig = oldIndex >= 0 ? FLOOR_CONFIGS[oldIndex] : null
+
+    const duration = instant ? 0 : 1.0
+
+    // Post-processing crossfade
+    this.experience.postProcessing.crossfadeTo(config.postProfile, duration)
+
+    // Lighting crossfade
+    this.experience.world.environment.crossfadeLighting(config.id, duration)
+
+    // Particle target
+    this.experience.world.particles.setTarget(config.particleTarget, duration || 1.0)
+
+    // UI text
+    if (oldConfig?.textElement) {
+      this.experience.ui.hideText(oldConfig.textElement)
+    }
+    if (config.textElement) {
+      this.experience.ui.showText(config.textElement)
     }
 
-    this.experience.camera.transitionTo(newScene.camera, camDuration)
+    // World floor activation (characters visibility, etc.)
+    this.experience.world.setActiveFloor(config.id)
 
-    const fxDuration = instant ? 0 : 1.0
-    this.experience.postProcessing.crossfadeTo(newScene.postProfile, fxDuration)
-    this.experience.world.environment.crossfadeLighting(newScene.id, fxDuration)
-
-    this.experience.world.particles.setTarget(
-      newScene.particleTarget,
-      postDuration || 1.0
-    )
-
-    if (oldScene?.textElement) {
-      this.experience.ui.hideText(oldScene.textElement)
-    }
-    if (newScene.textElement) {
-      this.experience.ui.showText(newScene.textElement)
-    }
-
-    this.updateNav(sceneIndex)
-    this.experience.world.setActiveScene(newScene.id)
+    // Nav dots
+    this._updateNav(floorIndex)
   }
 
   update() {
     if (!this._booted) return
 
     const progress = this.experience.virtualScroll.progress
-    const newSceneIndex = this.getSceneIndex(progress)
 
-    if (newSceneIndex !== this.currentSceneIndex) {
-      this.applySceneEnter(newSceneIndex, false)
-      this.currentSceneIndex = newSceneIndex
+    // ── Drive camera from rail ──
+    this.experience.camera.setProgress(progress)
+
+    // ── Detect floor changes ──
+    const floorIndex = this._getFloorIndex(progress)
+    const inStaircase = floorIndex === -1
+
+    if (!inStaircase && floorIndex !== this.currentFloorIndex) {
+      this._applyFloorEnter(floorIndex, false)
+      this.currentFloorIndex = floorIndex
     }
 
-    const scene = SCENES[this.currentSceneIndex]
-    if (!scene) return
+    // ── Per-frame onProgress for current floor ──
+    if (!inStaircase && floorIndex >= 0) {
+      const floor = FLOORS[floorIndex]
+      const config = FLOOR_CONFIGS[floorIndex]
+      const span = floor.progressEnd - floor.progressStart
+      const local = span > 0 ? (progress - floor.progressStart) / span : 0
+      const clamped = THREE.MathUtils.clamp(local, 0, 1)
+      if (config.onProgress) config.onProgress(clamped)
+    }
 
-    const span = scene.progressEnd - scene.progressStart
-    const localProgress =
-      span > 0 ? (progress - scene.progressStart) / span : 0
-    const clamped = THREE.MathUtils.clamp(localProgress, 0, 1)
-    if (scene.onProgress) scene.onProgress(clamped)
+    // ── During staircase: hide text overlays ──
+    if (inStaircase && this.currentFloorIndex >= 0) {
+      const oldConfig = FLOOR_CONFIGS[this.currentFloorIndex]
+      if (oldConfig?.textElement) {
+        this.experience.ui.hideText(oldConfig.textElement)
+      }
+    }
   }
 
-  updateNav(sceneIndex) {
+  _updateNav(floorIndex) {
     document.querySelectorAll('.nav-dot').forEach((dot, i) => {
-      dot.classList.toggle('active', i === sceneIndex)
+      dot.classList.toggle('active', i === floorIndex)
     })
   }
 }

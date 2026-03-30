@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import gsap from 'gsap'
 import { Experience } from '../Experience.js'
+import { FLOORS } from '../core/constants.js'
 
 function hexToRgb01(hex) {
   return {
@@ -139,7 +140,7 @@ export class Environment {
   }
 
   setupFog() {
-    this.scene.fog = new THREE.FogExp2(0xfaf7f2, 0.018)
+    this.scene.fog = new THREE.FogExp2(0xfaf7f2, 0.04)
   }
 
   setupLights() {
@@ -150,7 +151,7 @@ export class Environment {
       this.experience.capabilities?.shadowMapSize ?? 2048
     this.keyLight.shadow.mapSize.set(sm, sm)
     this.keyLight.shadow.camera.near = 0.5
-    this.keyLight.shadow.camera.far = 20
+    this.keyLight.shadow.camera.far = 80
     this.keyLight.shadow.camera.left = -6
     this.keyLight.shadow.camera.right = 6
     this.keyLight.shadow.camera.top = 6
@@ -190,6 +191,8 @@ export class Environment {
       const light = new THREE.PointLight(0xf0f0ff, 0, 6, 2)
       light.position.set(x, 4.95, z)
       light.userData.base = 0.8
+      light.userData.fx = x
+      light.userData.fz = z
       this.scene.add(light)
       this.fixtureLights.push(light)
     }
@@ -207,15 +210,21 @@ export class Environment {
     const list = [
       this.ambientLight,
       this.keyLight,
+      this.keyLight.position,
       this.fillLight,
       this.rimLight,
       this.sceneSpot,
+      this.sceneSpot.position,
       this.sceneSpot.target.position,
       this.owenSpot,
+      this.owenSpot.position,
       this.yilinSpot,
+      this.yilinSpot.position,
       this.scene.fog,
       ...this.fixtureLights,
+      ...this.fixtureLights.map((l) => l.position),
       ...this.poolPointLights,
+      ...this.poolPointLights.map((pl) => pl.position),
     ]
     for (const t of list) {
       if (t) gsap.killTweensOf(t)
@@ -233,6 +242,9 @@ export class Environment {
   crossfadeLighting(sceneId, duration = 1.0) {
     const c = this.lightingConfigs[sceneId]
     if (!c) return
+
+    const floorDef = FLOORS.find((f) => f.id === sceneId)
+    const floorY = floorDef?.y ?? 0
 
     const d = duration
     this._killLightingTweens()
@@ -255,22 +267,37 @@ export class Environment {
       this.ambientLight.color.setRGB(ac.r, ac.g, ac.b)
       this.keyLight.intensity = c.keyIntensity
       this.keyLight.color.setRGB(kc.r, kc.g, kc.b)
-      this.keyLight.position.set(...c.keyPosition)
+      this.keyLight.position.set(
+        c.keyPosition[0],
+        c.keyPosition[1] + floorY,
+        c.keyPosition[2]
+      )
       this.fillLight.intensity = c.fillIntensity
       this.fillLight.color.setRGB(fc.r, fc.g, fc.b)
       this.rimLight.intensity = c.rimIntensity
       this.rimLight.color.setRGB(rc.r, rc.g, rc.b)
       this.sceneSpot.intensity = c.spotIntensity
       this.sceneSpot.color.setRGB(sc.r, sc.g, sc.b)
-      this.sceneSpot.position.set(...c.spotPosition)
-      this.sceneSpot.target.position.set(...c.spotTarget)
+      this.sceneSpot.position.set(
+        c.spotPosition[0],
+        c.spotPosition[1] + floorY,
+        c.spotPosition[2]
+      )
+      this.sceneSpot.target.position.set(
+        c.spotTarget[0],
+        c.spotTarget[1] + floorY,
+        c.spotTarget[2]
+      )
       this.sceneSpot.target.updateMatrixWorld()
       this.owenSpot.intensity = c.owenSpot
       this.yilinSpot.intensity = c.yilinSpot
+      this.owenSpot.position.set(-0.8, 3.5 + floorY, 1.2)
+      this.yilinSpot.position.set(0.9, 3.5 + floorY, 0.6)
       for (const light of this.fixtureLights) {
         light.intensity = light.userData.base * c.fixtureIntensity
+        light.position.set(light.userData.fx, 4.95 + floorY, light.userData.fz)
       }
-      this._applyPointPool(c.points, 0)
+      this._applyPointPool(c.points, 0, floorY)
       applyFog()
       return
     }
@@ -301,7 +328,7 @@ export class Environment {
     })
     gsap.to(this.keyLight.position, {
       x: c.keyPosition[0],
-      y: c.keyPosition[1],
+      y: c.keyPosition[1] + floorY,
       z: c.keyPosition[2],
       duration: d,
       ease: 'power2.inOut',
@@ -344,14 +371,14 @@ export class Environment {
     })
     gsap.to(this.sceneSpot.position, {
       x: c.spotPosition[0],
-      y: c.spotPosition[1],
+      y: c.spotPosition[1] + floorY,
       z: c.spotPosition[2],
       duration: d,
       ease: 'power2.inOut',
     })
     gsap.to(this.sceneSpot.target.position, {
       x: c.spotTarget[0],
-      y: c.spotTarget[1],
+      y: c.spotTarget[1] + floorY,
       z: c.spotTarget[2],
       duration: d,
       ease: 'power2.inOut',
@@ -367,15 +394,36 @@ export class Environment {
       duration: d,
       ease: 'power2.inOut',
     })
+    gsap.to(this.owenSpot.position, {
+      x: -0.8,
+      y: 3.5 + floorY,
+      z: 1.2,
+      duration: d,
+      ease: 'power2.inOut',
+    })
+    gsap.to(this.yilinSpot.position, {
+      x: 0.9,
+      y: 3.5 + floorY,
+      z: 0.6,
+      duration: d,
+      ease: 'power2.inOut',
+    })
     for (const light of this.fixtureLights) {
       gsap.to(light, {
         intensity: light.userData.base * c.fixtureIntensity,
         duration: d,
         ease: 'power2.inOut',
       })
+      gsap.to(light.position, {
+        x: light.userData.fx,
+        y: 4.95 + floorY,
+        z: light.userData.fz,
+        duration: d,
+        ease: 'power2.inOut',
+      })
     }
 
-    this._applyPointPool(c.points, d)
+    this._applyPointPool(c.points, d, floorY)
 
     if (this.scene.fog && this.scene.fog.isFogExp2) {
       const fog = this.scene.fog
@@ -395,7 +443,7 @@ export class Environment {
     }
   }
 
-  _applyPointPool(points, duration) {
+  _applyPointPool(points, duration, floorY = 0) {
     for (let i = 0; i < this.poolPointLights.length; i++) {
       const pl = this.poolPointLights[i]
       const cfg = points[i]
@@ -410,11 +458,12 @@ export class Environment {
 
       const pc = hexToRgb01(cfg.color)
       pl.distance = cfg.distance ?? 8
+      const py = cfg.position[1] + floorY
 
       if (duration <= 0) {
         pl.color.setRGB(pc.r, pc.g, pc.b)
         pl.intensity = cfg.intensity
-        pl.position.set(...cfg.position)
+        pl.position.set(cfg.position[0], py, cfg.position[2])
       } else {
         gsap.to(pl.color, {
           r: pc.r,
@@ -430,7 +479,7 @@ export class Environment {
         })
         gsap.to(pl.position, {
           x: cfg.position[0],
-          y: cfg.position[1],
+          y: py,
           z: cfg.position[2],
           duration,
           ease: 'power2.inOut',

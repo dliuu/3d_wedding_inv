@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { Experience } from '../Experience.js'
+import { FLOORS } from '../core/constants.js'
 
 /**
  * Characters — Owen & Yilin
@@ -124,7 +125,7 @@ export class Characters {
   loadOwenModel() {
     const gltf = this.loader.items['owen']
     this.owen = gltf.scene
-    this.owen.position.set(-0.8, 0, 1.2)
+    this.owen.position.set(-0.8, FLOORS[1].y, 1.2)
     this.owen.rotation.y = 0.15
 
     // Setup animation mixer if model has animations
@@ -149,7 +150,7 @@ export class Characters {
   loadYilinModel() {
     const gltf = this.loader.items['yilin']
     this.yilin = gltf.scene
-    this.yilin.position.set(0.9, 0, 0.6)
+    this.yilin.position.set(0.9, FLOORS[1].y, 0.6)
     this.yilin.rotation.y = Math.PI + 0.3
 
     if (gltf.animations.length > 0) {
@@ -292,7 +293,7 @@ export class Characters {
     this._owenParts.mouth = mouth
 
     // Position at table
-    this.owen.position.set(-0.8, 0, 1.2)
+    this.owen.position.set(-0.8, FLOORS[1].y, 1.2)
     this.owen.rotation.y = 0.15
     this.scene.add(this.owen)
   }
@@ -441,7 +442,7 @@ export class Characters {
     this.yilin.add(mouth)
 
     // Position diagonally at table
-    this.yilin.position.set(0.9, 0, 0.6)
+    this.yilin.position.set(0.9, FLOORS[1].y, 0.6)
     this.yilin.rotation.y = Math.PI + 0.3
     this.scene.add(this.yilin)
   }
@@ -452,7 +453,7 @@ export class Characters {
       new THREE.BoxGeometry(0.26, 0.02, 0.36),
       new THREE.MeshStandardMaterial({ color: 0xf5e6c8, roughness: 0.6 })
     )
-    nb.position.set(-0.3, 1.35, 0.3)
+    nb.position.set(-0.3, FLOORS[1].y + 1.35, 0.3)
     nb.rotation.y = 0.2
     this.scene.add(nb)
 
@@ -461,13 +462,13 @@ export class Characters {
       new THREE.CylinderGeometry(0.04, 0.035, 0.12, 14),
       new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.25 })
     )
-    cup.position.set(0.15, 1.4, 0.6)
+    cup.position.set(0.15, FLOORS[1].y + 1.4, 0.6)
     this.scene.add(cup)
     const coffee = new THREE.Mesh(
       new THREE.CircleGeometry(0.038, 14),
       new THREE.MeshStandardMaterial({ color: 0x3a1f0a, roughness: 0.4 })
     )
-    coffee.position.set(0.15, 1.46, 0.6)
+    coffee.position.set(0.15, FLOORS[1].y + 1.46, 0.6)
     coffee.rotation.x = -Math.PI / 2
     this.scene.add(coffee)
 
@@ -476,14 +477,14 @@ export class Characters {
       new THREE.BoxGeometry(0.36, 0.012, 0.26),
       new THREE.MeshStandardMaterial({ color: 0xc0c0c0, roughness: 0.25, metalness: 0.6 })
     )
-    base.position.set(0.5, 1.34, -0.1)
+    base.position.set(0.5, FLOORS[1].y + 1.34, -0.1)
     base.rotation.y = -0.3
     this.scene.add(base)
     const screen = new THREE.Mesh(
       new THREE.BoxGeometry(0.35, 0.25, 0.006),
       new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.4 })
     )
-    screen.position.set(0.5, 1.48, -0.23)
+    screen.position.set(0.5, FLOORS[1].y + 1.48, -0.23)
     screen.rotation.x = 0.15
     screen.rotation.y = -0.3
     this.scene.add(screen)
@@ -514,14 +515,14 @@ export class Characters {
   applySceneLayout(sceneId) {
     if (!this.owen || !this.yilin) return
     if (sceneId === 'first-date') {
-      this.owen.position.set(-0.35, 0, 0.4)
+      this.owen.position.set(-0.35, FLOORS[2].y, 0.4)
       this._layoutOwenRotY = 0.5
-      this.yilin.position.set(0.45, 0, -0.25)
+      this.yilin.position.set(0.45, FLOORS[2].y, -0.25)
       this._layoutYilinRotY = Math.PI - 0.4
     } else {
-      this.owen.position.set(-0.8, 0, 1.2)
+      this.owen.position.set(-0.8, FLOORS[1].y, 1.2)
       this._layoutOwenRotY = 0.15
-      this.yilin.position.set(0.9, 0, 0.6)
+      this.yilin.position.set(0.9, FLOORS[1].y, 0.6)
       this._layoutYilinRotY = Math.PI + 0.3
     }
   }

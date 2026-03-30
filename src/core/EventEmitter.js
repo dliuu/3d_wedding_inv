@@ -14,7 +14,7 @@ export class EventEmitter {
 
   off(event, fn) {
     if (!this._listeners[event]) return
-    this._listeners[event] = this._listeners[event].filter(f => f !== fn)
+    this._listeners[event] = this._listeners[event].filter((f) => f !== fn)
     return this
   }
 
